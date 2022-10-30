@@ -1,0 +1,42 @@
+--for the Data Adventure 01 article on Medium.com
+
+--code 1: Overview off the whole table
+SELECT * FROM telemetry_sale;
+
+--code 2: the earliest and the latest sale records
+SELECT MIN(transaction_timestamp) AS earliest,
+       MAX(transaction_timestamp) AS latest
+FROM telemetry_sale;
+
+--code 3: distinct numbers of machines and menu items
+SELECT COUNT(DISTINCT machine_id) AS count_machine, 
+       COUNT(DISTINCT product) AS count_product
+FROM telemetry_sale;
+
+--code 4: unique number of menu items sold at each machine
+SELECT machine_id, 
+       STRING_AGG(DISTINCT product, ', ') AS product
+FROM telemetry_sale
+GROUP BY machine_id;
+
+--code 5: calculate the running total with OVER() clause
+SELECT machine_id, 
+       SUM(revenue) OVER(PARTITION BY transaction_timestamp) AS total_revenue, 
+       SUM(revenue) OVER(ORDER BY transaction_timestamp ASC) AS running_total,
+       transaction_timestamp
+FROM telemetry_sale;
+
+--code 6: the maximum running totals from each machine and the 
+--        number of days it takes for each to get closest to the 
+--        5000 mark
+SELECT rt.machine_id, MAX(rt.running_total),
+       MAX(rt.transaction_timestamp)::DATE - MIN(rt.transaction_timestamp)::DATE AS days_to_profit
+FROM (
+    SELECT machine_id,  
+       SUM(revenue) OVER(ORDER BY transaction_timestamp ASC) AS running_total,
+       transaction_timestamp
+    FROM telemetry_sale
+    ) AS rt
+WHERE rt.running_total <= 5000
+GROUP BY rt.machine_id
+ORDER BY days_to_profit ASC;
